@@ -149,7 +149,7 @@ if not df_global_perf.empty:
                     "Ticker": st.column_config.Column(disabled=True),
                     "Prezzo Attuale ($/€)": st.column_config.NumberColumn(disabled=True)
                 },
-                hide_index=True, use_container_width=True, key="editor_etoro_v6"
+                hide_index=True, use_container_width=True, key="editor_etoro_v7"
             )
             st.markdown("</div>", unsafe_allow_html=True)
             
@@ -167,21 +167,22 @@ if not df_global_perf.empty:
             st.warning("Nessun dato disponibile per i tuoi asset personali. Verifica i ticker.")
 
     # -------------------------------------------------------------
-    # TAB 2: PORTAFOGLI DI RIFERIMENTO (SINTASSI E SPAZI CORRETTI)
+    # TAB 2: PORTAFOGLI DI RIFERIMENTO (LAYOUT FLUIDO SENZA COLONNE)
     # -------------------------------------------------------------
     with tab2:
         st.markdown("<h3 style='margin-top:10px;'>🏛️ Asset Allocations Macroeconomiche</h3>", unsafe_allow_html=True)
-        col_rec, col_gold = st.columns(2)
         
-        with col_rec:
-            st.markdown("<div class='etoro-card' style='border-top: 4px solid #e67e22;'><h4>🛡️ Scenario: Recessione</h4><p style='color:#a0aab2;font-size:0.9rem;'>Asset: TLT (Bond), GLD (Oro), XLU (Utility).</p></div>", unsafe_allow_html=True)
-            df_rec = df_global_perf[df_global_perf["Ticker"].isin(RECESSION_DEFAULT.keys())].copy()
-            if not df_rec.empty:
-                df_rec["Capitale (€)"] = df_rec["Ticker"].map(RECESSION_DEFAULT)
-                df_rec["Quote"] = (df_rec["Capitale (€)"] / df_rec["Prezzo ($/€)"]).round(4)
-                st.dataframe(style_performance_df(df_rec.drop(columns=["Capitale (€)", "Quote"])), use_container_width=True, hide_index=True)
-                st.dataframe(df_rec[["Ticker", "Capitale (€)", "Quote"]], use_container_width=True, hide_index=True)
-            else:
-                st.info("Nessun dato recuperato per il portafoglio Recessione.")
+        # 1. PORTAFOGLIO RECESSSIONE
+        st.markdown("<div class='etoro-card' style='border-top: 4px solid #e67e22;'><h4>🛡️ Scenario: Recessione</h4><p style='color:#a0aab2;font-size:0.9rem;'>Asset: TLT (Bond), GLD (Oro), XLU (Utility).</p></div>", unsafe_allow_html=True)
+        df_rec = df_global_perf[df_global_perf["Ticker"].isin(RECESSION_DEFAULT.keys())].copy()
+        if not df_rec.empty:
+            df_rec["Capitale (€)"] = df_rec["Ticker"].map(RECESSION_DEFAULT)
+            df_rec["Quote"] = (df_rec["Capitale (€)"] / df_rec["Prezzo ($/€)"]).round(4)
+            st.dataframe(style_performance_df(df_rec.drop(columns=["Capitale (€)", "Quote"])), use_container_width=True, hide_index=True)
+            st.dataframe(df_rec[["Ticker", "Capitale (€)", "Quote"]], use_container_width=True, hide_index=True)
+        else:
+            st.info("Nessun dato recuperato per il portafoglio Recessione.")
+            
+        st.markdown("<br>", unsafe_allow_html=True)
 
-        with col_gold:
+        # 2. PORTAFOGLIO GOLDILOCKS ECONOMY
