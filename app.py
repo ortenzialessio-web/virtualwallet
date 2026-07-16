@@ -41,10 +41,9 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-# --- TICKER PREDEFINITI ULTRA-STABILI (Benchmark Globali) ---
-# Usiamo ticker americani/globali ad altissima liquidità per evitare blocchi delle API di Yahoo
-RECESSION_DEFAULT: dict[str, float] = {"TLT": 4000.0, "GLD": 3000.0, "XLU": 3000.0}   # Bond a lungo termine, Oro, Utility
-GOLDILOCKS_DEFAULT: dict[str, float] = {"URTH": 4000.0, "IEMG": 2000.0, "XLK": 4000.0} # MSCI World, Emerging Markets, Technology
+# --- TICKER PREDEFINITI ULTRA-STABILI ---
+RECESSION_DEFAULT: dict[str, float] = {"TLT": 4000.0, "GLD": 3000.0, "XLU": 3000.0}
+GOLDILOCKS_DEFAULT: dict[str, float] = {"URTH": 4000.0, "IEMG": 2000.0, "XLK": 4000.0}
 
 # --- SIDEBAR ---
 st.sidebar.markdown("<h2 style='font-size: 1.4rem; color: #46d35f !important;'>⚙️ STRUMENTI</h2>", unsafe_allow_html=True)
@@ -59,7 +58,7 @@ if st.sidebar.button("🔄 Sincronizza API Mercati", use_container_width=True):
     st.cache_data.clear()
     st.rerun()
 
-# --- FUNZIONE CACHE RECUPERO DATI API (CON TOLLERANZA ERRORI) ---
+# --- FUNZIONE CACHE RECUPERO DATI API ---
 @st.cache_data(ttl=600)
 def fetch_financial_data(all_tickers: list[str]) -> pd.DataFrame:
     if not all_tickers:
@@ -72,7 +71,6 @@ def fetch_financial_data(all_tickers: list[str]) -> pd.DataFrame:
     for ticker in all_tickers:
         try:
             asset = yf.Ticker(ticker)
-            # Scarichiamo un periodo più lungo per coprire i giorni festivi senza fallire
             hist = asset.history(period="2y") 
             
             if hist.empty or len(hist) < 10:
@@ -80,7 +78,6 @@ def fetch_financial_data(all_tickers: list[str]) -> pd.DataFrame:
                 
             last_price = float(hist['Close'].iloc[-1])
             
-            # Estrazione sicura dei dati storici calcolati a ritroso
             price_1g = float(hist['Close'].iloc[-2]) if len(hist) > 1 else last_price
             price_5g = float(hist['Close'].asof(end_date - timedelta(days=5)))
             price_1m = float(hist['Close'].asof(end_date - timedelta(days=30)))
@@ -89,7 +86,6 @@ def fetch_financial_data(all_tickers: list[str]) -> pd.DataFrame:
             price_1a = float(hist['Close'].asof(end_date - timedelta(days=365)))
             price_ytd = float(hist['Close'].asof(datetime(end_date.year, 1, 1)))
             
-            # Gestione dei valori di fallback se .asof() restituisce NaN
             price_5g = price_5g if pd.notna(price_5g) else last_price
             price_1m = price_1m if pd.notna(price_1m) else last_price
             price_3m = price_3m if pd.notna(price_3m) else last_price
@@ -108,16 +104,14 @@ def fetch_financial_data(all_tickers: list[str]) -> pd.DataFrame:
                 "YTD (%)": round(((last_price - price_ytd) / price_ytd) * 100, 2) if price_ytd else 0.0,
                 "1 Anno (%)": round(((last_price - price_1a) / price_1a) * 100, 2) if price_1a else 0.0,
             })
-        except Exception as e:
-            print(f"Errore log su ticker {ticker}: {e}") # Non blocca l'interfaccia
+        except Exception:
+            pass
             
     return pd.DataFrame(perf_data)
 
-# Unione dinamica di tutte le richieste API
 all_active_tickers = list(set(personal_tickers + list(RECESSION_DEFAULT.keys()) + list(GOLDILOCKS_DEFAULT.keys())))
 df_global_perf = fetch_financial_data(all_active_tickers)
 
-# Formattatore Colori eToro (Verde/Rosso)
 def style_performance_df(df: pd.DataFrame) -> Styler:
     def color_etoro(val):
         if isinstance(val, (int, float)):
@@ -155,11 +149,10 @@ if not df_global_perf.empty:
                     "Ticker": st.column_config.Column(disabled=True),
                     "Prezzo Attuale ($/€)": st.column_config.NumberColumn(disabled=True)
                 },
-                hide_index=True, use_container_width=True, key="editor_etoro_v4"
+                hide_index=True, use_container_width=True, key="editor_etoro_v5"
             )
             st.markdown("</div>", unsafe_allow_html=True)
             
-            # Calcolo matematico quote
             edited_pers_df["Quote Spettanti"] = (edited_pers_df["Capitale Investito (€)"] / edited_pers_df["Prezzo Attuale ($/€)"]).round(4)
             tot_cap_pers = edited_pers_df["Capitale Investito (€)"].sum()
             edited_pers_df["Peso Allocazione (%)"] = ((edited_pers_df["Capitale Investito (€)"] / (tot_cap_pers if tot_cap_pers > 0 else 1)) * 100).round(2)
@@ -174,7 +167,7 @@ if not df_global_perf.empty:
             st.warning("Nessun dato disponibile per i tuoi asset personali. Verifica i ticker.")
 
     # -------------------------------------------------------------
-    # TAB 2: PORTAFOGLI DI RIFERIMENTO (RISOLTO)
+    # TAB 2: PORTAFOGLI DI RIFERIMENTO (FIX INDENTAZIONE)
     # -------------------------------------------------------------
     with tab2:
         st.markdown("<h3 style='margin-top:10px;'>🏛️ Asset Allocations Macroeconomiche</h3>", unsafe_allow_html=True)
@@ -184,3 +177,11 @@ if not df_global_perf.empty:
             st.markdown("<div class='etoro-card' style='border-top: 4px solid #e67e22;'><h4>🛡️ Scenario: Recessione</h4><p style='color:#a0aab2;font-size:0.9rem;'>Asset: TLT (Bond), GLD (Oro), XLU (Utility).</p></div>", unsafe_allow_html=True)
             df_rec = df_global_perf[df_global_perf["Ticker"].isin(RECESSION_DEFAULT.keys())].copy()
             if not df_rec.empty:
+                df_rec["Capitale (€)"] = df_rec["Ticker"].map(RECESSION_DEFAULT)
+                df_rec["Quote"] = (df_rec["Capitale (€)"] / df_rec["Prezzo ($/€)"]).round(4)
+                st.dataframe(style_performance_df(df_rec.drop(columns=["Capitale (€)", "Quote"])), use_container_width=True, hide_index=True)
+                st.dataframe(df_rec[["Ticker", "Capitale (€)", "Quote"]], use_container_width=True, hide_index=True)
+            else:
+                st.info("Caricamento dati di mercato in corso...")
+
+        with col_gold:
