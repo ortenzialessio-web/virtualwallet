@@ -149,7 +149,7 @@ if not df_global_perf.empty:
                     "Ticker": st.column_config.Column(disabled=True),
                     "Prezzo Attuale ($/€)": st.column_config.NumberColumn(disabled=True)
                 },
-                hide_index=True, use_container_width=True, key="editor_etoro_v5"
+                hide_index=True, use_container_width=True, key="editor_etoro_v6"
             )
             st.markdown("</div>", unsafe_allow_html=True)
             
@@ -167,7 +167,7 @@ if not df_global_perf.empty:
             st.warning("Nessun dato disponibile per i tuoi asset personali. Verifica i ticker.")
 
     # -------------------------------------------------------------
-    # TAB 2: PORTAFOGLI DI RIFERIMENTO (FIX INDENTAZIONE)
+    # TAB 2: PORTAFOGLI DI RIFERIMENTO (SINTASSI E SPAZI CORRETTI)
     # -------------------------------------------------------------
     with tab2:
         st.markdown("<h3 style='margin-top:10px;'>🏛️ Asset Allocations Macroeconomiche</h3>", unsafe_allow_html=True)
@@ -182,6 +182,6 @@ if not df_global_perf.empty:
                 st.dataframe(style_performance_df(df_rec.drop(columns=["Capitale (€)", "Quote"])), use_container_width=True, hide_index=True)
                 st.dataframe(df_rec[["Ticker", "Capitale (€)", "Quote"]], use_container_width=True, hide_index=True)
             else:
-                st.info("Caricamento dati di mercato in corso...")
+                st.info("Nessun dato recuperato per il portafoglio Recessione.")
 
         with col_gold:
